@@ -12,7 +12,7 @@ public class SpreadsheetParser {
      * Constructs a SpreadsheetParser object with the specified DatabaseHandler.
      * @param dbHandler The DatabaseHandler to interact with the database.
      */
-    public SpreadsheetParser(DatabaseHandler dbHandler) 
+    public SpreadsheetParser(DatabaseHandler dbHandler)
     {
         this.db = dbHandler;
     }
@@ -48,7 +48,7 @@ public class SpreadsheetParser {
 
             if (isAdvanced || isNovice) {
                 String[] data = line.split(",");
-                if (data.length < 5) continue; // Skipping the invalid rows
+                if (data.length < 5) continue; // Skipping the invalid rows, not a student
                 String member1 = data[3].trim();
                 String email1 = data[4].trim();
                 if (member1.isEmpty() && email1.isEmpty()) {
@@ -56,6 +56,7 @@ public class SpreadsheetParser {
                     isNovice = false;
                     continue;
                 }
+                
                 String member2 = data[5].trim();
                 String email2 = data[6].trim();
                 String member3 = data[7].trim();

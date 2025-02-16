@@ -272,7 +272,7 @@ public class DatabaseHandler {
         String firstName = nameParts[0];
         String lastName = nameParts[1];
     
-        // First, find the student ID
+        // Find the student ID
         String selectQuery = "SELECT id FROM students WHERE firstname = ? AND lastname = ?";
         try (PreparedStatement selectStmt = connection.prepareStatement(selectQuery)) {
             selectStmt.setString(1, firstName);
@@ -309,7 +309,7 @@ public class DatabaseHandler {
      */
     public void removeCompetition(String competitionName) throws SQLException
     {
-        // First, find the competition ID
+        // Find the competition ID
         String selectQuery = "SELECT id FROM competitions WHERE name = ?";
         try (PreparedStatement selectStmt = connection.prepareStatement(selectQuery)) {
             selectStmt.setString(1, competitionName);
@@ -434,7 +434,7 @@ public class DatabaseHandler {
      */
     public void wipeDatabase() throws SQLException
     {
-        try (Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) { 
             connection.setAutoCommit(false); 
     
             stmt.executeUpdate("DELETE FROM students");

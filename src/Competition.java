@@ -12,7 +12,7 @@ public class Competition {
    *
    * @param id The ID of the competition.
    * @param name The name of the competition.
-   */
+   */ 
   public Competition(int id, String name) {
     this.id = id;
     this.name = name;

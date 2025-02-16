@@ -6,6 +6,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.JScrollPane;
 import javax.swing.JFileChooser;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.sql.*;
 
@@ -74,7 +75,7 @@ public class Leaderboard {
    */
   public static int printMenu()
   {
-    String[] options = {"Quit", "Load Data (csv only)", "View Leaderboard", "Add student", "Remove student", "Add competition", "Remove competition", "Filter students", "View Competition Data", "View Student Data", "Export Leaderboard", "Wipe Database"};
+    String[] options = {"Quit", "Load Data (csv only)", "View Leaderboard", "View All Data", "Add student", "Remove student", "Add competition", "Remove competition", "Filter students", "View Competition Data", "View Student Data", "Export All Data", "Wipe Database"};
     String input = (String) JOptionPane.showInputDialog(null, "Choose Option", "Menu", JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
     int index = 0;
 
@@ -146,48 +147,76 @@ public class Leaderboard {
         // Display JTable
         JOptionPane.showMessageDialog(null, new JScrollPane(table));
         break;
-      // Add student
+      // View all data
       case 3:
-        String name = JOptionPane.showInputDialog("Name (First & Last)");
-        String email = JOptionPane.showInputDialog("Email");
+        Competition[] compList = dataHandler.getCompetition();
 
-        String[] myChoices = {"Novice", "Advanced"};
-        String level = myChoices[JOptionPane.showOptionDialog(null, "Level of Student?", "Level", JOptionPane.OK_OPTION, JOptionPane.INFORMATION_MESSAGE, null, myChoices, myChoices[0])];
-       
-        int cont = 0;
 
-        // Get the list of competition names into a string list of competition names
-        Competition[] listOfCompetitions = dataHandler.getCompetition();
-        String[] compNameStrings = new String[listOfCompetitions.length];
-        for (int i = 0; i < listOfCompetitions.length; i++) {
-          compNameStrings[i] = listOfCompetitions[i].getName();
+        Object[] colsData = {"Competition Name","Student Name","# of problems solved","Placement"};
+        ArrayList<Object[]> rowsData = new ArrayList<>();
+        // loop for data
+        for (Competition compExported : compList) {
+          Object[][] competitionData = dataHandler.getCompetitionData(compExported.getName(), dbHandler.getConnection());
+          for (int i = 0; i < competitionData.length; i++) {
+            rowsData.add(new Object[]{compExported.getName(), competitionData[i][0], competitionData[i][1], competitionData[i][2]});
+          }
         }
 
-        //Loop to allow the user to add multiple competitions for the student
-        do {
-          String comp = (String) JOptionPane.showInputDialog(null, "Choose Competition", "Competitions", JOptionPane.PLAIN_MESSAGE, null, compNameStrings, compNameStrings[0]);
-      
-          // Removes competition from the list of competitions
-          String[] array = Arrays.stream(compNameStrings).filter(value -> !value.equals(comp)).toArray(String[]::new);
-          compNameStrings = array;
+        JTable tabAllData = new JTable(rowsData.toArray(new Object[0][]), colsData);
+        JOptionPane.showMessageDialog(null, new JScrollPane(tabAllData));
+        break;
+      // Add student
+      case 4:
+        try {
+          String name = JOptionPane.showInputDialog("Name (First & Last)");
+          String email = JOptionPane.showInputDialog("Email");
 
-          // Get student info
-          int probSolved = Integer.parseInt(JOptionPane.showInputDialog("Problems Solved"));
-          int place = Integer.parseInt(JOptionPane.showInputDialog("Placed"));
+          String[] myChoices = {"Novice", "Advanced"};
+          String level = myChoices[JOptionPane.showOptionDialog(null, "Level of Student?", "Level", JOptionPane.OK_OPTION, JOptionPane.INFORMATION_MESSAGE, null, myChoices, myChoices[0])];
 
-          // Add student info into database
-          dbHandler.addStudentAndCompetition(level, name, email, probSolved, place, comp);
-          cont = JOptionPane.showConfirmDialog(null, "Continue?", "Continue to Add Competitions", JOptionPane.YES_NO_OPTION);
-        } while(cont == 0 && compNameStrings.length > 0);
+          if (name.equals("") && email.equals("")) {
+            JOptionPane.showMessageDialog(null, "Failed to add student. No Name or email given.");
+            break;
+          }
 
-        // Load data from the database to update the datahandler
-        dataHandler.loadData(dbHandler.getConnection());
+          int cont = 0;
 
-        // Display success message
-        JOptionPane.showMessageDialog(null, "success!", "Added Student", JOptionPane.PLAIN_MESSAGE);
+          // Get the list of competition names into a string list of competition names
+          Competition[] listOfCompetitions = dataHandler.getCompetition();
+          String[] compNameStrings = new String[listOfCompetitions.length];
+          for (int i = 0; i < listOfCompetitions.length; i++) {
+            compNameStrings[i] = listOfCompetitions[i].getName();
+          }
+
+          //Loop to allow the user to add multiple competitions for the student
+          do {
+            String comp = (String) JOptionPane.showInputDialog(null, "Choose Competition", "Competitions", JOptionPane.PLAIN_MESSAGE, null, compNameStrings, compNameStrings[0]);
+
+            // Removes competition from the list of competitions
+            String[] array = Arrays.stream(compNameStrings).filter(value -> !value.equals(comp)).toArray(String[]::new);
+            compNameStrings = array;
+
+            // Get student info
+            int probSolved = Integer.parseInt(JOptionPane.showInputDialog("Problems Solved"));
+            int place = Integer.parseInt(JOptionPane.showInputDialog("Placed"));
+
+
+            // Add student info into database
+            dbHandler.addStudentAndCompetition(level, name, email, probSolved, place, comp);
+            cont = JOptionPane.showConfirmDialog(null, "Continue?", "Continue to Add Competitions", JOptionPane.YES_NO_OPTION);
+          } while (cont == 0 && compNameStrings.length > 0);
+
+          // Load data from the database to update the datahandler
+          dataHandler.loadData(dbHandler.getConnection());
+
+          // Display success message
+          JOptionPane.showMessageDialog(null, "success!", "Added Student", JOptionPane.PLAIN_MESSAGE);
+        } catch (Exception e) {
+          JOptionPane.showMessageDialog(null, "No Student Added.");
+        }
         break;
       // Remove student
-      case 4:
+      case 5:
         // Get student roster into String form
         Student[] roster = dataHandler.getStudents();
         String[] rosterStrings = new String[roster.length];
@@ -195,24 +224,63 @@ public class Leaderboard {
           rosterStrings[i] = roster[i].getName();
         }
 
-        // Ask user for a student's name
-        String str = (String) JOptionPane.showInputDialog(null, "Choose Student to Remove", "Student Removal", JOptionPane.PLAIN_MESSAGE, null, rosterStrings, rosterStrings[0]);
+        try {
+            // Ask user for a student's name
+            String str = (String) JOptionPane.showInputDialog(null, "Choose Student to Remove", "Student Removal", JOptionPane.PLAIN_MESSAGE, null, rosterStrings, rosterStrings[0]);
 
-        // Remove student from the list and update datahandler
-        dbHandler.removeStudent(str);
-        dataHandler.loadData(dbHandler.getConnection());
+            // Remove student from the list and update datahandler
+            dbHandler.removeStudent(str);
+            dataHandler.loadData(dbHandler.getConnection());
 
-        JOptionPane.showMessageDialog(null, "Student removed successfully.");
+            JOptionPane.showMessageDialog(null, "Student removed successfully.");
+          } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "No Student removed.");
+          }
         break;
       // Add competition
-      case 5:
-        String compName = JOptionPane.showInputDialog("Competition Name");
-        dbHandler.addCompetition(compName);
-        dataHandler.loadData(dbHandler.getConnection());
-        JOptionPane.showMessageDialog(null, "Competition added successfully.");
+      case 6:
+
+        try {
+          String compName = JOptionPane.showInputDialog("Competition Name");
+
+          Student[] studentData = dataHandler.getStudents();
+
+          int addStudents = JOptionPane.showConfirmDialog(null, "Add Students?", "Do you want to add students?", JOptionPane.YES_NO_OPTION);
+
+          if (addStudents == 0) {
+            String[] studentNameStrings = new String[studentData.length];
+            int cont2 = 0;
+            for (int i = 0; i < studentData.length; i++) {
+              studentNameStrings[i] = studentData[i].getName();
+            }
+            do {
+              String student = (String) JOptionPane.showInputDialog(null, "Choose Students to Add", "Students", JOptionPane.PLAIN_MESSAGE, null, studentNameStrings, studentNameStrings[0]);
+              int studentIndex = Arrays.asList(studentNameStrings).indexOf(student);
+
+              // Removes competition from the list of competitions
+              String[] array = Arrays.stream(studentNameStrings).filter(value -> !value.equals(student)).toArray(String[]::new);
+              studentNameStrings = array;
+
+              // Get student info
+              int probSolved = Integer.parseInt(JOptionPane.showInputDialog("Problems Solved"));
+              int place = Integer.parseInt(JOptionPane.showInputDialog("Placed"));
+
+              // Add student info into database
+              dbHandler.addStudentAndCompetition(studentData[studentIndex].getLevel(), studentData[studentIndex].getName(), studentData[studentIndex].getEmail(), probSolved, place, compName);
+              cont2 = JOptionPane.showConfirmDialog(null, "Continue?", "Continue to Add Students", JOptionPane.YES_NO_OPTION);
+            } while (cont2 == 0 && studentNameStrings.length > 0);
+          } else {
+            dbHandler.addCompetition(compName);
+          }
+          dataHandler.loadData(dbHandler.getConnection());
+          JOptionPane.showMessageDialog(null, "Competition added successfully.");
+        } catch (Exception e) {
+          JOptionPane.showMessageDialog(null, "No Competition added.");
+        }
+
         break;
       // Remove competition
-      case 6:
+      case 7:
         // Get competition list into String form
         Competition[] listOfComp = dataHandler.getCompetition();
         String[] compStrings = new String[listOfComp.length];
@@ -220,16 +288,20 @@ public class Leaderboard {
           compStrings[i] = listOfComp[i].getName();
         }
 
-        String comp = (String) JOptionPane.showInputDialog(null, "Choose Competition to Remove", "Competition Removal", JOptionPane.PLAIN_MESSAGE, null, compStrings, compStrings[0]);
+        try {
+          String comp = (String) JOptionPane.showInputDialog(null, "Choose Competition to Remove", "Competition Removal", JOptionPane.PLAIN_MESSAGE, null, compStrings, compStrings[0]);
 
-        // Remove competition from the list and update datahandler
-        dbHandler.removeCompetition(comp);
-        dataHandler.loadData(dbHandler.getConnection());
+          // Remove competition from the list and update datahandler
+          dbHandler.removeCompetition(comp);
+          dataHandler.loadData(dbHandler.getConnection());
 
-        JOptionPane.showMessageDialog(null, "Competition removed successfully.");
+          JOptionPane.showMessageDialog(null, "Competition removed successfully.");
+        } catch (Exception e) {
+          JOptionPane.showMessageDialog(null, "No Competition removed.");
+        }
         break;
       // Filter students
-      case 7:
+      case 8:
         // Get the list of choices for filtering students
         String[] choices = {"# of Competitions Participated in", "# of Problems Solved", "Novice", "Advanced"};
         String filter = choices[JOptionPane.showOptionDialog(null, "Filter Students by?", "Filter", JOptionPane.OK_OPTION, JOptionPane.INFORMATION_MESSAGE, null, choices, choices[0])];
@@ -265,7 +337,7 @@ public class Leaderboard {
         JOptionPane.showMessageDialog(null, new JScrollPane(table2));
         break;
       // View competition data
-      case 8:
+      case 9:
         // Get list of competition names
         Competition[] listOfComp2 = dataHandler.getCompetition();
         String[] compStrings2 = new String[listOfComp2.length];
@@ -283,7 +355,7 @@ public class Leaderboard {
         JOptionPane.showMessageDialog(null, new JScrollPane(tab));
         break;
       // View student data
-      case 9:
+      case 10:
         // Get list of student names
         Student[] listOfStudents = dataHandler.getStudents();
         String[] stuStrings2 = new String[listOfStudents.length];
@@ -300,30 +372,37 @@ public class Leaderboard {
         JTable tab2 = new JTable(stuData, col2);
         JOptionPane.showMessageDialog(null, new JScrollPane(tab2));
         break;
-      // Export leaderboard
-      case 10:
-        Student[] studentList = dataHandler.getStudents();
+      // Exports All Data
+      case 11:
+        Competition[] compListExport = dataHandler.getCompetition();
         String fileName = JOptionPane.showInputDialog("File Name to save to?");
         try {
           // Create filewriter that writes to a csv file
           FileWriter writer = new FileWriter(fileName + ".csv");
 
           // header of file
-          writer.append("Name");
+          writer.append("Competition Name");
+          writer.append(',');
+          writer.append("Student Name");
           writer.append(',');
           writer.append("Problems Solved");
           writer.append(',');
-          writer.append("# of competitions");
+          writer.append("Placement");
           writer.append('\n');
 
           // loop for data
-          for (Student studentExported : studentList) {
-            writer.append(studentExported.getName());
-            writer.append(',');
-            writer.append(String.valueOf(studentExported.getTotalProb()));
-            writer.append(',');
-            writer.append(String.valueOf(studentExported.getCompetitions().size()));
-            writer.append('\n');
+          for (Competition compExported : compListExport) {
+            Object[][] competitionData = dataHandler.getCompetitionData(compExported.getName(), dbHandler.getConnection());
+            for (int i = 0; i < competitionData.length; i++) {
+              writer.append(compExported.getName());
+              writer.append(',');
+              writer.append(String.valueOf(competitionData[i][0]));
+              writer.append(',');
+              writer.append(String.valueOf(competitionData[i][1]));
+              writer.append(',');
+              writer.append(String.valueOf(competitionData[i][2]));
+              writer.append('\n');
+            }
           }
 
           writer.flush();
@@ -334,7 +413,7 @@ public class Leaderboard {
         }
         break;
       // Wipe database memory
-      case 11:
+      case 12:
         dbHandler.wipeDatabase();
         dataHandler.loadData(dbHandler.getConnection());
         fileLoaded = false;
