@@ -3,7 +3,8 @@
     CodeComp
   </b>
 </h3>
---------
-<br />
 
-A CP Student Data Aggregator for Ms. Horton <3
+___
+
+A CP Student Data Aggregator for Ms. Horton ❤️
+
